@@ -1,7 +1,8 @@
 """
 IP-SAKTI Sahayak — Embedding Service (Gemini text-embedding-004)
 """
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Optional
 import logging
 
@@ -18,7 +19,7 @@ class EmbeddingService:
     def __init__(self):
         settings = get_settings()
         api_key = settings.GEMINI_API_KEY.strip().strip('"\'')
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         self.model_name = settings.GEMINI_EMBEDDING_MODEL
         self.dimensions = settings.GEMINI_EMBEDDING_DIMENSIONS
         logger.info(f"EmbeddingService initialized with model: {self.model_name}")
@@ -32,12 +33,12 @@ class EmbeddingService:
     def embed_query(self, text: str) -> list[float]:
         """Generate embedding for a single query text."""
         try:
-            result = genai.embed_content(
+            result = self.client.models.embed_content(
                 model=self.model_name,
-                content=text,
-                task_type="retrieval_query"
+                contents=text,
+                config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
             )
-            return result["embedding"]
+            return list(result.embeddings[0].values)
         except Exception as e:
             logger.error(f"Error generating query embedding: {e}")
             raise
@@ -45,12 +46,12 @@ class EmbeddingService:
     def embed_document(self, text: str) -> list[float]:
         """Generate embedding for a single document text."""
         try:
-            result = genai.embed_content(
+            result = self.client.models.embed_content(
                 model=self.model_name,
-                content=text,
-                task_type="retrieval_document"
+                contents=text,
+                config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
             )
-            return result["embedding"]
+            return list(result.embeddings[0].values)
         except Exception as e:
             logger.error(f"Error generating document embedding: {e}")
             raise
@@ -63,12 +64,12 @@ class EmbeddingService:
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
             try:
-                result = genai.embed_content(
+                result = self.client.models.embed_content(
                     model=self.model_name,
-                    content=batch,
-                    task_type="retrieval_document"
+                    contents=batch,
+                    config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
                 )
-                embeddings.extend(result["embedding"])
+                embeddings.extend([list(e.values) for e in result.embeddings])
             except Exception as e:
                 logger.error(f"Error in batch embedding (batch {i // batch_size}): {e}")
                 raise

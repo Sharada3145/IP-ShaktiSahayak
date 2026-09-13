@@ -1,7 +1,8 @@
 """
 IP-SAKTI Sahayak — LLM Service (Gemini)
 """
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Optional, AsyncGenerator
 import logging
 import json
@@ -19,23 +20,34 @@ class LLMService:
     def __init__(self):
         settings = get_settings()
         api_key = settings.GEMINI_API_KEY.strip().strip('"\'')
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name=settings.GEMINI_LLM_MODEL,
-            generation_config=genai.GenerationConfig(
-                temperature=0.3,
-                top_p=0.85,
-                top_k=40,
-                max_output_tokens=4096,
-            ),
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = settings.GEMINI_LLM_MODEL
+
+        self.generation_config = types.GenerateContentConfig(
+            temperature=0.3,
+            top_p=0.85,
+            top_k=40,
+            max_output_tokens=4096,
             safety_settings=[
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
-            ]
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HARASSMENT",
+                    threshold="BLOCK_ONLY_HIGH",
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HATE_SPEECH",
+                    threshold="BLOCK_ONLY_HIGH",
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold="BLOCK_ONLY_HIGH",
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="BLOCK_ONLY_HIGH",
+                ),
+            ],
         )
-        logger.info(f"LLMService initialized with model: {settings.GEMINI_LLM_MODEL}")
+        logger.info(f"LLMService initialized with model: {self.model_name}")
     
     @classmethod
     def get_instance(cls) -> "LLMService":
@@ -46,10 +58,13 @@ class LLMService:
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using the Gemini model."""
         try:
-            chat = self.model.start_chat(history=[])
             # Combine system prompt with user prompt for Gemini
             full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
-            response = chat.send_message(full_prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config=self.generation_config,
+            )
             return response.text
         except Exception as e:
             logger.error(f"Error generating LLM response: {e}")
@@ -58,11 +73,13 @@ class LLMService:
     async def generate_stream(self, system_prompt: str, user_prompt: str) -> AsyncGenerator[str, None]:
         """Generate a streaming response using the Gemini model."""
         try:
-            chat = self.model.start_chat(history=[])
             full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
-            response = chat.send_message(full_prompt, stream=True)
             
-            for chunk in response:
+            for chunk in self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=full_prompt,
+                config=self.generation_config,
+            ):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:
@@ -72,7 +89,10 @@ class LLMService:
     def is_ready(self) -> bool:
         """Check if the LLM service is ready."""
         try:
-            response = self.model.generate_content("Say 'ready' in one word.")
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents="Say 'ready' in one word.",
+            )
             return bool(response.text)
         except Exception:
             return False

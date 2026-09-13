@@ -98,6 +98,7 @@ class CorpusIngestor:
         
         # Generate document ID from filepath
         doc_id = hashlib.md5(filepath.encode()).hexdigest()[:12]
+        content_hash = hashlib.md5(content.encode()).hexdigest()[:12]
         
         # Check if already ingested (unless force)
         if not force:
@@ -106,7 +107,15 @@ class CorpusIngestor:
                 limit=1
             )
             if existing and existing["ids"]:
-                return 0
+                # Check if content has changed
+                existing_metadatas = existing.get("metadatas", [])
+                if existing_metadatas and existing_metadatas[0]:
+                    stored_hash = existing_metadatas[0].get("content_hash")
+                    if stored_hash == content_hash:
+                        return 0
+
+                # Content changed (or no hash was stored), delete old chunks before re-ingesting
+                self.collection.delete(where={"doc_id": doc_id})
         
         # Determine jurisdiction from filepath or metadata
         jurisdiction = metadata.get("jurisdiction", "")
@@ -139,6 +148,7 @@ class CorpusIngestor:
             
             chunk_metadata = {
                 "doc_id": doc_id,
+                "content_hash": content_hash,
                 "chunk_index": i,
                 "title": title,
                 "jurisdiction": jurisdiction,
@@ -200,12 +210,6 @@ class CorpusIngestor:
 
 def run_ingestion(force: bool = False):
     """Standalone function to run corpus ingestion."""
-    import google.generativeai as genai
-    from app.core.config import get_settings
-    
-    settings = get_settings()
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    
     ingestor = CorpusIngestor()
     stats = ingestor.ingest_all(force=force)
     print(f"\n📊 Ingestion Results:")
