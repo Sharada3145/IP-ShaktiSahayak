@@ -20,7 +20,7 @@ export default function TKDLCheckPage() {
     const parsedIngredients = ingredients.split(',').map(i => i.trim()).filter(i => i.length > 0);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/tools/tkdl-check`, {
+      const res = await fetch('/api/tools/tkdl-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ingredients: parsedIngredients, indication })

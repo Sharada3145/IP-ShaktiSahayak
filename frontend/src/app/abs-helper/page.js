@@ -14,7 +14,7 @@ export default function ABSHelperPage() {
     setMessages([]);
     setResult(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/tools/abs-check`, {
+      const res = await fetch('/api/tools/abs-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
@@ -36,7 +36,7 @@ export default function ABSHelperPage() {
     setIsLoading(true);
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/tools/abs-check/followup`, {
+      const res = await fetch('/api/tools/abs-check/followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, response: answerText })

@@ -11,7 +11,7 @@ COPY . .
 
 # Environment variables
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV BACKEND_URL=http://backend:8000
 
 # Build the Next.js application
 RUN npm run build

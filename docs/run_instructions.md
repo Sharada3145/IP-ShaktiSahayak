@@ -78,9 +78,9 @@ The frontend communicates with the backend via the `/api/chat` and other tool en
    ```
 
 3. Configure the environment variables:
-   - If there is a `.env` or `.env.local` file in the frontend folder, ensure it points to the local backend URL:
+    - The frontend defaults to the local backend URL during development. For a custom backend URL, set `BACKEND_URL`:
      ```env
-     NEXT_PUBLIC_API_URL="http://127.0.0.1:8000"
+       BACKEND_URL="http://127.0.0.1:8000"
      ```
 
 4. Start the development server:
@@ -102,3 +102,18 @@ If the project includes a `docker-compose.yml` file, you can run both services s
    docker-compose up --build
    ```
 3. Access the frontend at `http://localhost:3000` and backend at `http://localhost:8000`.
+
+---
+
+## 4. Deploying Frontend and Backend Separately
+
+The frontend sends requests through its same-origin `/api` path. Set this
+environment variable on the frontend deployment:
+
+```env
+BACKEND_URL=https://your-backend-service.example.com
+```
+
+Set `GOOGLE_API_KEY` on the backend deployment. Rebuild the frontend after
+changing `BACKEND_URL`, because Next.js embeds the rewrite configuration during
+the build.

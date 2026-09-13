@@ -19,7 +19,7 @@ export default function ClassifyPage() {
     setMessages([{ role: 'user', content: description }]);
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/classify`, {
+      const res = await fetch('/api/classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description })
@@ -44,7 +44,7 @@ export default function ClassifyPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/classify/followup`, {
+      const res = await fetch('/api/classify/followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ response: userResponse, session_id: sessionId })
