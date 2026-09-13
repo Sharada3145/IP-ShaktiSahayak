@@ -15,20 +15,27 @@ export default function ClassifyPage() {
     e.preventDefault();
     if (!description.trim() || isLoading) return;
 
+    const initialDesc = description.trim();
+    setDescription('');
     setIsLoading(true);
-    setMessages([{ role: 'user', content: description }]);
+    setMessages([{ role: 'user', content: initialDesc }]);
     
     try {
-      const res = await fetch('/api/classify', {
+      const res = await fetch('/api/tools/classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description })
+        body: JSON.stringify({ description: initialDesc })
       });
       
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
       handleResponse(data);
     } catch (error) {
       console.error('Classification error:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'An error occurred while connecting to the classifier service. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -44,30 +51,37 @@ export default function ClassifyPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/classify/followup', {
+      const res = await fetch('/api/tools/classify/followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ response: userResponse, session_id: sessionId })
       });
       
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
       handleResponse(data);
     } catch (error) {
       console.error('Followup error:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'An error occurred during follow-up. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResponse = (data) => {
-    setSessionId(data.session_id);
+    if (data.session_id) {
+      setSessionId(data.session_id);
+    }
     
     if (data.is_complete) {
       setIsComplete(true);
       setResult(data);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: `Classification complete! Your product falls under: ${data.category_label}` 
+        content: `Classification complete! Your product falls under: ${data.category_label || data.category}` 
       }]);
     } else {
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
@@ -170,7 +184,7 @@ export default function ClassifyPage() {
             <div className="result-section">
               <h4>Regulatory Requirements</h4>
               <ul>
-                {result.regulatory_requirements.map((req, i) => (
+                {result.regulatory_requirements?.map((req, i) => (
                   <li key={i}>{req}</li>
                 ))}
               </ul>
@@ -179,7 +193,7 @@ export default function ClassifyPage() {
             <div className="result-section">
               <h4>Intellectual Property Implications</h4>
               <ul>
-                {result.ip_implications.map((ip, i) => (
+                {result.ip_implications?.map((ip, i) => (
                   <li key={i}>{ip}</li>
                 ))}
               </ul>
@@ -193,7 +207,7 @@ export default function ClassifyPage() {
             <div className="result-section">
               <h4>Relevant Statutes</h4>
               <div className="statute-tags">
-                {result.relevant_statutes.map((statute, i) => (
+                {result.relevant_statutes?.map((statute, i) => (
                   <span key={i} className="statute-tag">{statute}</span>
                 ))}
               </div>
