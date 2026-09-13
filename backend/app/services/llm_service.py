@@ -18,7 +18,8 @@ class LLMService:
     
     def __init__(self):
         settings = get_settings()
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        api_key = settings.GEMINI_API_KEY.strip().strip('"\'')
+        genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(
             model_name=settings.GEMINI_LLM_MODEL,
             generation_config=genai.GenerationConfig(

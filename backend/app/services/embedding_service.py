@@ -17,7 +17,8 @@ class EmbeddingService:
     
     def __init__(self):
         settings = get_settings()
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        api_key = settings.GEMINI_API_KEY.strip().strip('"\'')
+        genai.configure(api_key=api_key)
         self.model_name = settings.GEMINI_EMBEDDING_MODEL
         self.dimensions = settings.GEMINI_EMBEDDING_DIMENSIONS
         logger.info(f"EmbeddingService initialized with model: {self.model_name}")
